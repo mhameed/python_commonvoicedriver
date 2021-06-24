@@ -1,14 +1,12 @@
-#!/usr/bin/env python
-
-import urllib2
+#!/usr/bin/env python3
+import base64
+import requests
 import tempfile 
 import pyaudio
 import wave
 import json
 import time
-import plumbum
 import threading
-from plumbum.cmd import flac
 
 CHUNK = 1024
 FORMAT = pyaudio.paInt16
@@ -36,7 +34,7 @@ class spk2txt(threading.Thread):
             rate=RATE,
             input=True,
             frames_per_buffer=CHUNK)
-        print "recording ..."
+        print("recording ...")
         while not self._stop.isSet():
             data = stream.read(CHUNK)
             self.frames.append(data)
@@ -54,18 +52,16 @@ class spk2txt(threading.Thread):
         wf.writeframes(b''.join(self.frames))
         wf.close()
 
-        flac['-f', '-o', outfn+'.flac', outfn+'.wav']()
-        f = open(outfn+'.flac', 'rb')
-        flacData = f.read()
+        f = open(outfn+'.wav', 'rb')
+        wavData = base64.standard_b64encode(f.read()).decode('ascii')
         f.close()
-
-        print 'Sending to google.'
-        url = 'https://www.google.com/speech-api/v1/recognize?xjerr=1&pfilter=1&client=chromium&lang=%s&maxresults=1' %self.lang
-        header = {'Content-Type' : 'audio/x-flac; rate=16000'}
-        req = urllib2.Request(url, flacData, header)
-        conn = urllib2.urlopen(req)
-        data = json.loads(conn.read())
-        ut = data['hypotheses']
+        data = {'audio': wavData}
+        print('Sending to api.')
+        url = 'https://api.hameed.info/mesar/speech/transcriber/'
+        header = {'Content-Type' : 'Application/json'}
+        r = requests.post(url, data=json.dumps(data), headers=header)
+        data = r.json()
+        ut = data['transcripts']
         for i in ut:
             self.text += i['utterance']
 

@@ -13,7 +13,7 @@ FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 16000
 
-class spk2txt(threading.Thread):
+class spk2txt(object):
 
     def __init__(self, lang='en-GB', *args, **kwargs):
         super(spk2txt, self).__init__(*args, **kwargs)
@@ -22,9 +22,17 @@ class spk2txt(threading.Thread):
         self._stop = threading.Event()
         self.text = ""
         self.lang = lang
+        self.t = None
+
+    def start(self):
+        self.frames = []
+        self._stop.clear()
+        self.t = threading.Thread(target=self.run)
+        self.t.start()
 
     def stop(self):
         self._stop.set()
+        self.t.join()
 
     def run(self):
         self.text = ""
@@ -34,14 +42,9 @@ class spk2txt(threading.Thread):
             rate=RATE,
             input=True,
             frames_per_buffer=CHUNK)
-        print("recording ...")
         while not self._stop.isSet():
             data = stream.read(CHUNK)
             self.frames.append(data)
-            time.sleep(0)
-
-        print("* done recording")
-
         stream.stop_stream()
         stream.close()
 
@@ -56,7 +59,6 @@ class spk2txt(threading.Thread):
         wavData = base64.standard_b64encode(f.read()).decode('ascii')
         f.close()
         data = {'audio': wavData}
-        print('Sending to api.')
         url = 'https://api.hameed.info/mesar/speech/transcriber/'
         header = {'Content-Type' : 'Application/json'}
         r = requests.post(url, data=json.dumps(data), headers=header)

@@ -1,0 +1,8 @@
+httpx
+numpy
+plumbum
+sounddevice
+soundfile
+trio
+trio-gtk
+Xlib

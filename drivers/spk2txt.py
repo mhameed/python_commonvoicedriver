@@ -7,6 +7,7 @@ import wave
 import json
 import time
 import threading
+import logging
 
 CHUNK = 1024
 FORMAT = pyaudio.paInt16
@@ -17,24 +18,30 @@ class spk2txt(object):
 
     def __init__(self, lang='en-GB', *args, **kwargs):
         super(spk2txt, self).__init__(*args, **kwargs)
+        self.logger = logging.getLogger('motion.spk2txt')
         self.p = pyaudio.PyAudio()
         self.frames = []
         self._stop = threading.Event()
         self.text = ""
         self.lang = lang
         self.t = None
+        self.logger.debug('initialised')
 
     def start(self):
         self.frames = []
+        self.logger.info('start')
         self._stop.clear()
         self.t = threading.Thread(target=self.run)
         self.t.start()
 
     def stop(self):
         self._stop.set()
+        self.logger.info('stopping')
         self.t.join()
+        self.logger.info('stopped')
 
     def run(self):
+        self.logger.debug('run started')
         self.text = ""
         outfn = OUTPUT_FILENAME = tempfile.mktemp()
         stream = self.p.open(format=FORMAT,
@@ -66,8 +73,7 @@ class spk2txt(object):
         ut = data['transcripts']
         for i in ut:
             self.text += i['utterance']
-
+        self.logger.info('run done')
 
     def __del__self(self):
         self.p.terminate()
-

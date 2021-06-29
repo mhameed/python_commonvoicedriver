@@ -1,79 +1,39 @@
 #!/usr/bin/env python3
-import base64
-import requests
+import trio
+import httpx
 import tempfile 
-import pyaudio
-import wave
 import json
 import time
 import threading
 import logging
-
-CHUNK = 1024
-FORMAT = pyaudio.paInt16
-CHANNELS = 1
-RATE = 16000
+from audiohelper import AudioHelper
 
 class spk2txt(object):
 
-    def __init__(self, lang='en-GB', *args, **kwargs):
+    def __init__(self, url, lang='en-GB', *args, **kwargs):
         super(spk2txt, self).__init__(*args, **kwargs)
         self.logger = logging.getLogger('motion.spk2txt')
-        self.p = pyaudio.PyAudio()
-        self.frames = []
-        self._stop = threading.Event()
         self.text = ""
         self.lang = lang
-        self.t = None
+        self.audio = AudioHelper()
+        self.url = url
         self.logger.debug('initialised')
 
     def start(self):
-        self.frames = []
         self.logger.info('start')
-        self._stop.clear()
-        self.t = threading.Thread(target=self.run)
-        self.t.start()
+        self.audio.record()
 
-    def stop(self):
-        self._stop.set()
-        self.logger.info('stopping')
-        self.t.join()
-        self.logger.info('stopped')
-
-    def run(self):
-        self.logger.debug('run started')
+    async def stop(self):
+        self.audio.stop()
         self.text = ""
-        outfn = OUTPUT_FILENAME = tempfile.mktemp()
-        stream = self.p.open(format=FORMAT,
-            channels=CHANNELS,
-            rate=RATE,
-            input=True,
-            frames_per_buffer=CHUNK)
-        while not self._stop.isSet():
-            data = stream.read(CHUNK)
-            self.frames.append(data)
-        stream.stop_stream()
-        stream.close()
-
-        wf = wave.open(outfn+".wav", 'wb')
-        wf.setnchannels(CHANNELS)
-        wf.setsampwidth(self.p.get_sample_size(FORMAT))
-        wf.setframerate(RATE)
-        wf.writeframes(b''.join(self.frames))
-        wf.close()
-
-        f = open(outfn+'.wav', 'rb')
-        wavData = base64.standard_b64encode(f.read()).decode('ascii')
-        f.close()
-        data = {'audio': wavData}
-        url = 'https://api.hameed.info/mesar/speech/transcriber/'
+        while self.audio.action != '':
+            await trio.sleep(0.1)
+        payload = {'audio': self.audio.base64()}
         header = {'Content-Type' : 'Application/json'}
-        r = requests.post(url, data=json.dumps(data), headers=header)
-        data = r.json()
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(self.url, json=payload, headers=header)
+            data = resp.json()
         ut = data['transcripts']
         for i in ut:
             self.text += i['utterance']
-        self.logger.info('run done')
-
-    def __del__self(self):
-        self.p.terminate()
+        self.logger.info('stop done')

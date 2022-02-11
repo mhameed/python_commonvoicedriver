@@ -28,10 +28,10 @@ class spk2txt(object):
         self.text = ""
         while self.audio.action != '':
             await trio.sleep(0.1)
-        payload = {'audio': self.audio.base64()}
-        header = {'Content-Type' : 'Application/json'}
+        header = {'Content-Type' : 'Audio/Wav'}
         async with httpx.AsyncClient() as client:
-            resp = await client.post(self.url, json=payload, headers=header)
+            with open(self.audio.filename, 'rb') as f:
+                resp = await client.post(self.url, data=f.read(), headers=header)
             data = resp.json()
         ut = data['transcripts']
         for i in ut:

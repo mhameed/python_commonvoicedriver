@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
 import base64
+import os
 import sounddevice as sd
 import soundfile as sf
 import tempfile
 import threading
+from plumbum.cmd import sox
 
 class AudioHelper():
 
-    def __init__(self, filename = tempfile.mktemp('.wav')):
+    def __init__(self, filename = tempfile.mktemp('.wav'), normalize=True):
         self._stop = threading.Event()
         self._thread = None
         self._action = ''
         self.filename = filename
+        self.normalize = normalize
 
     @property
     def action(self):
@@ -28,10 +31,16 @@ class AudioHelper():
     def _do_record(self):
         self._action = 'recording'
         mySampleRate = 44100
+        fname = tempfile.mktemp('.wav')
         with sd.InputStream(samplerate=mySampleRate, dtype='float32', channels=1) as stream:
-            with sf.SoundFile(self.filename, 'w', samplerate=mySampleRate, channels=1) as wf:
+            with sf.SoundFile(fname, 'w', samplerate=mySampleRate, channels=1) as wf:
                 while not self._stop.isSet():
                     wf.write(stream.read(1024)[0])
+        if self.normalize:
+            sox_cmd = sox[fname, self.filename, 'norm', '-0.1']()
+            os.remove(fname)
+        else:
+            os.rename(fname, self.filename)
         self._action = ''
 
     def _do_action(self, action):

@@ -6,12 +6,12 @@ import json
 import time
 import threading
 import logging
-from audiohelper import AudioHelper
+from .audiohelper import AudioHelper
 
-class spk2txt(object):
+class Spk2Txt(object):
 
     def __init__(self, url, lang='en-GB', *args, **kwargs):
-        super(spk2txt, self).__init__(*args, **kwargs)
+        super(Spk2Txt, self).__init__(*args, **kwargs)
         self.logger = logging.getLogger('motion.spk2txt')
         self.text = ""
         self.lang = lang

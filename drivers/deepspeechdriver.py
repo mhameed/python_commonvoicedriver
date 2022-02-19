@@ -12,7 +12,7 @@ import sys
 import trio
 import httpx
 from plumbum.cmd import xte, spd_say, xsel, echo, notify_send
-from utils import Spk2Txt
+from utils.spk2txt import Spk2Txt
 from .dictationcorrection import DictationCorrection
 import threading
 import gi

@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+import gi
+import logging
+import os
+import sys
+import trio
+import trio_gtk
+
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk as gtk
+
+if (not os.environ.get('COMMONVOICE_API_URL') or
+    not os.environ.get('COMMONVOICE_INPUTDEVICE')):
+    print("please export environmental variables:")
+    print('export COMMONVOICE_API_URL="<url>"')
+    print('export COMMONVOICE_INPUTDEVICE="</dev/input/eventx"')
+    sys.exit(1)
+try:
+    from plumbum.cmd import sox
+except ImportError:
+    print("Please install sox:")
+    print("$ sudo apt-get install sox")
+    sys.exit(1)
+
+from drivers.deepspeechdriver import Driver
+logger = logging.getLogger('flexi_dev')
+logger.setLevel(logging.DEBUG)
+fh = logging.FileHandler('flexi_dev.log')
+fh.setLevel(logging.DEBUG)
+logger.addHandler(fh)
+
+
+m = Driver(os.environ.get('COMMONVOICE_API_URL'), os.environ.get('COMMONVOICE_INPUTDEVICE'))
+trio_gtk.run(m.run)

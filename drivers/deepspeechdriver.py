@@ -6,7 +6,7 @@ import Xlib
 import Xlib.X
 import Xlib.XK
 import Xlib.display
-from driver import KBDDriver
+import flexi_dev.eventdriver as fdev
 
 import sys
 import trio
@@ -30,7 +30,7 @@ def say(text):
 async def child1(win, nursery):
     win.show_all()
 
-class Driver(KBDDriver):
+class Driver(fdev.EventDriver):
     def __init__(self, api_url, device, *args, **kwargs):
         super(Driver, self).__init__(device=device, *args, **kwargs)
         self.api_url = api_url
@@ -66,7 +66,7 @@ class Driver(KBDDriver):
             if logger:
                 logger.debug('data: ' %data)
 
-    async def kbd_btn272(self, **kwargs):
+    async def e_btn272(self, **kwargs):
         value = kwargs.get('evalue')
         self.logger.debug('left button val=%d' % value)
         if value:
@@ -79,7 +79,7 @@ class Driver(KBDDriver):
             self.dictationcorrection.entry.set_text(self.m.text)
             self.logger.debug(f'text: %s' %self.m.text)
 
-    async def kbd_btn273(self, **kwargs):
+    async def e_btn273(self, **kwargs):
         value = kwargs.get('evalue')
         self.logger.debug('right button val=%d' % value)
         if value:
@@ -87,7 +87,7 @@ class Driver(KBDDriver):
             (xsel['-i', '-b'] < '/tmp/speech.txt' )()
             xte['keydown Control_L', 'key v', 'keyup Control_L']()
 
-    async def kbd_btn274(self, **kwargs):
+    async def e_btn274(self, **kwargs):
         value = kwargs.get('evalue')
         self.logger.debug('middle button val=%d' % value)
         if value:

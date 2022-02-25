@@ -2,6 +2,7 @@ import os
 import shutil
 import tempfile
 import threading
+import urllib
 import Xlib
 import Xlib.X
 import Xlib.XK
@@ -58,7 +59,7 @@ class Driver(fdev.EventDriver):
 
     def post(self, url, filename, text, *args, **kwargs):
         logger = kwargs.get('logger', None)
-        headers = {'Content-Type': 'Audio/Wav','sentence': text}
+        headers = {'Content-Type': 'Audio/Wav','sentence': urllib.parse.quote(text)}
         with httpx.Client() as client:
             with open(filename, 'rb') as f:
                 resp = client.post(url, headers=headers, content=f)
